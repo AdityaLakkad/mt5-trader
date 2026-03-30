@@ -68,12 +68,12 @@ MIN_LOT_SIZE = 0.01          # hard floor
 # =============================================================================
 
 # ── Option A: Points ─────────────────────────────────────────────────────────
-# TPSL = TPSLMode.POINTS
-TP_POINTS = 40.0             # take profit in points
-SL_POINTS = 20.0             # stop loss in points
+TPSL = TPSLMode.POINTS
+TP_POINTS = 2000.0             # take profit in points
+SL_POINTS = 1000.0             # stop loss in points
 
 # ── Option B: Percentage ─────────────────────────────────────────────────────
-TPSL = TPSLMode.PERCENT
+# TPSL = TPSLMode.PERCENT
 TP_PCT = 1.0               # 2% above entry
 SL_PCT = 0.50               # 1% below entry
 
@@ -104,8 +104,8 @@ params = BBEngulfingParams(
     tpsl_mode  = TPSL,
     tp_points  = globals().get("TP_POINTS", 40.0),
     sl_points  = globals().get("SL_POINTS", 20.0),
-    tp_pct     = globals().get("TP_PCT", 0.20),
-    sl_pct     = globals().get("SL_PCT", 0.10),
+    tp_pct     = globals().get("TP_PCT", 0.10),
+    sl_pct     = globals().get("SL_PCT", 0.05),
 
     max_fill_attempts = 3,
 )
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     dashboard = Dashboard(
         order_manager = engine.order_manager,
         analytics     = engine.analytics,
-        refresh_rate  = 2.0,
+        refresh_rate  = 120.0,
     )
     dashboard.start()
 

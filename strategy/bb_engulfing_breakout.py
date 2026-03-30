@@ -372,6 +372,27 @@ class BBEngulfingBreakoutStrategy(BaseStrategy):
 
         # ── Engulfing check ───────────────────────────────────────────────────
         engulf = is_engulfing(current, previous, self.params.engulf_tolerance_pct)
+
+        curr_body = abs(current["close"] - current["open"])
+        prev_body = abs(previous["close"] - previous["open"])
+        tol_amt   = curr_body * (self.params.engulf_tolerance_pct / 100.0)
+        expanded  = curr_body + tol_amt * 2
+
+        # ── Always log bar close so terminal is never silent ──────────────────
+        direction_char = "🟢" if current["close"] >= current["open"] else "🔴"
+        logger.info(
+            f"[{self.strategy_id}] BAR {event.symbol} {direction_char} | "
+            f"O={current['open']:.5f} H={current['high']:.5f} "
+            f"L={current['low']:.5f} C={current['close']:.5f} | "
+            f"body={curr_body:.5f} expanded={expanded:.5f} prev={prev_body:.5f} "
+            f"engulf={'✅ '+engulf if engulf else '❌ no'} | "
+            f"BB upper={current['upper_bb']:.5f} lower={current['lower_bb']:.5f} | "
+            f"state={sm.state.name}"
+            + (f" waiting_for={'LONG break >'+str(round(sm.pending.breakout_high,5)) if sm.pending and sm.pending.direction=='long' else 'SHORT break <'+str(round(sm.pending.breakout_low,5)) if sm.pending else ''} "
+               f"bars_left={sm.expiry_candles - sm.pending.candles_elapsed if sm.pending else '-'}"
+               if sm.is_waiting() else "")
+        )
+        
         if engulf is None:
             return
 

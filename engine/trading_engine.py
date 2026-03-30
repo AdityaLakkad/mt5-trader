@@ -25,21 +25,34 @@ logger = logging.getLogger(__name__)
 class TradingEngine:
 
     def __init__(self, config: FrameworkConfig, mode: str = "paper"):
-        self.config      = config
+        """
+        Parameters
+        ----------
+        config : FrameworkConfig
+        mode   : "paper" — simulate fills (default, safe)
+                 "live"  — send real orders to MT5 via order_send()
+        """
+        self.config = config
+        self.mode   = mode
         self._setup_logging()
 
         self.event_queue: Queue = Queue()
         self.connector   = MT5Connector(config.mt5)
-        # ── Order manager — swap here to go live ──────────────────────
+
+        # ── Order manager — swap here to switch paper ↔ live ──────────────────
         if mode == "live":
             from orders.live_order_manager import LiveOrderManager
             self.order_manager = LiveOrderManager(
                 account_config=config.account,
                 connector=self.connector,
                 event_queue=self.event_queue,
+                magic_number=234001,
+                slippage_points=10,
+                monitor_interval_s=2.0,
             )
             logger.warning(
-                "[Engine] ⚠️  LIVE MODE — real orders will be sent to MT5"
+                "[Engine] ⚠️  LIVE MODE — real orders will be sent to MT5. "
+                "Make sure you are on a DEMO account first."
             )
         else:
             self.order_manager = OrderManager(
@@ -48,6 +61,7 @@ class TradingEngine:
                 event_queue=self.event_queue,
             )
             logger.info("[Engine] Paper trading mode.")
+
         self.risk_manager = RiskManager(
             config=config.risk,
             connector=self.connector,
