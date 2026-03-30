@@ -53,7 +53,7 @@ FIXED_LOT_SIZE   = 0.01
 
 # ── Option B: Fixed USD risk per trade ────────────────────────────────────────
 # SIZING = SizingMode.FIXED_USD
-# RISK_AMOUNT_USD = 100.0    # always risk exactly $100 per trade
+RISK_AMOUNT_USD = 4.0    # always risk exactly $100 per trade
 
 # ── Option C: Risk % of current balance ──────────────────────────────────────
 # SIZING = SizingMode.RISK_PCT
@@ -68,7 +68,7 @@ MIN_LOT_SIZE = 0.01          # hard floor
 # =============================================================================
 
 # ── Option A: Points ─────────────────────────────────────────────────────────
-TPSL = TPSLMode.POINTS
+# TPSL = TPSLMode.POINTS
 TP_POINTS = 2000.0             # take profit in points
 SL_POINTS = 1000.0             # stop loss in points
 
@@ -76,6 +76,13 @@ SL_POINTS = 1000.0             # stop loss in points
 # TPSL = TPSLMode.PERCENT
 TP_PCT = 1.0               # 2% above entry
 SL_PCT = 0.50               # 1% below entry
+
+# ── Option C: Candle r2r
+TPSL = TPSLMode.CANDLE
+rr_ratio = 2
+# risk_amount = 7
+min_lot_size = 0.01
+max_lot_size = 10.0 
 
 
 # =============================================================================
@@ -106,6 +113,7 @@ params = BBEngulfingParams(
     sl_points  = globals().get("SL_POINTS", 20.0),
     tp_pct     = globals().get("TP_PCT", 0.10),
     sl_pct     = globals().get("SL_PCT", 0.05),
+    rr_ratio   = globals().get("rr_ratio", 2),
 
     max_fill_attempts = 3,
 )
@@ -194,7 +202,7 @@ if __name__ == "__main__":
 
     print_config_summary()
 
-    engine   = TradingEngine(config, mode="paper")
+    engine   = TradingEngine(config, mode="live")
     strategy = BBEngulfingBreakoutStrategy(
         symbols         = config.data.symbols,
         event_queue     = engine.event_queue,
