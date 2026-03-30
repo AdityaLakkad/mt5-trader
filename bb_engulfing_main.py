@@ -48,12 +48,13 @@ INITIAL_BALANCE = 10_000.0
 # =============================================================================
 
 # ── Option A: Fixed lot size ──────────────────────────────────────────────────
-SIZING = SizingMode.FIXED_LOTS
+# SIZING = SizingMode.FIXED_LOTS
+SIZING = SizingMode.FIXED_USD
 FIXED_LOT_SIZE   = 0.01
 
 # ── Option B: Fixed USD risk per trade ────────────────────────────────────────
 # SIZING = SizingMode.FIXED_USD
-RISK_AMOUNT_USD = 4.0    # always risk exactly $100 per trade
+RISK_AMOUNT_USD = 12.0    # always risk exactly $100 per trade
 
 # ── Option C: Risk % of current balance ──────────────────────────────────────
 # SIZING = SizingMode.RISK_PCT
