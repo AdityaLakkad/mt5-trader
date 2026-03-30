@@ -159,6 +159,8 @@ def compute_bb(df: pd.DataFrame, period: int,
 
 def candle_touches_lower_bb(candle: pd.Series) -> bool:
     """Long setup: opens below lower BB, closes above it."""
+    if candle["low"]  < candle["lower_bb"] and candle["high"] > candle["upper_bb"]:
+        return False
     return (
         candle["open"] < candle["close"] and 
         candle["low"]  < candle["lower_bb"] and candle["high"] > candle["lower_bb"]
@@ -167,6 +169,8 @@ def candle_touches_lower_bb(candle: pd.Series) -> bool:
 
 def candle_touches_upper_bb(candle: pd.Series) -> bool:
     """Short setup: opens above upper BB, closes below it."""
+    if candle["low"]  < candle["lower_bb"] and candle["high"] > candle["upper_bb"]:
+        return False
     return (
         candle["open"] > candle["close"] and 
         candle["open"]  > candle["upper_bb"] and candle["close"] < candle["upper_bb"]

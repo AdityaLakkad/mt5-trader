@@ -49,7 +49,7 @@ INITIAL_BALANCE = 10_000.0
 
 # ── Option A: Fixed lot size ──────────────────────────────────────────────────
 SIZING = SizingMode.FIXED_LOTS
-FIXED_LOT_SIZE   = 0.1
+FIXED_LOT_SIZE   = 0.01
 
 # ── Option B: Fixed USD risk per trade ────────────────────────────────────────
 # SIZING = SizingMode.FIXED_USD
@@ -68,14 +68,14 @@ MIN_LOT_SIZE = 0.01          # hard floor
 # =============================================================================
 
 # ── Option A: Points ─────────────────────────────────────────────────────────
-TPSL = TPSLMode.POINTS
+# TPSL = TPSLMode.POINTS
 TP_POINTS = 40.0             # take profit in points
 SL_POINTS = 20.0             # stop loss in points
 
 # ── Option B: Percentage ─────────────────────────────────────────────────────
-# TPSL = TPSLMode.PERCENT
-# TP_PCT = 2.0               # 2% above entry
-# SL_PCT = 1.0               # 1% below entry
+TPSL = TPSLMode.PERCENT
+TP_PCT = 1.0               # 2% above entry
+SL_PCT = 0.50               # 1% below entry
 
 
 # =============================================================================
@@ -104,8 +104,8 @@ params = BBEngulfingParams(
     tpsl_mode  = TPSL,
     tp_points  = globals().get("TP_POINTS", 40.0),
     sl_points  = globals().get("SL_POINTS", 20.0),
-    tp_pct     = globals().get("TP_PCT", 1.0),
-    sl_pct     = globals().get("SL_PCT", 0.50),
+    tp_pct     = globals().get("TP_PCT", 0.20),
+    sl_pct     = globals().get("SL_PCT", 0.10),
 
     max_fill_attempts = 3,
 )
@@ -129,11 +129,11 @@ config = FrameworkConfig(
         leverage        = 100,
     ),
     risk=RiskConfig(
-        risk_per_trade_pct = 1.0,
-        max_open_trades    = 3,        # global max across all symbols
-        default_sl_pips    = 20.0,
-        default_tp_pips    = 40.0,
-        max_drawdown_pct   = 20.0,     # pause trading if DD exceeds this
+        risk_per_trade_pct = 2.0,
+        max_open_trades    = 1,        # global max across all symbols
+        default_sl_pips    = 100.0,
+        default_tp_pips    = 100.0,
+        max_drawdown_pct   = 100.0,     # pause trading if DD exceeds this
     ),
     data=DataConfig(
         symbols       = [SYMBOL],
