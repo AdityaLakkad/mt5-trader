@@ -167,7 +167,7 @@ def candle_touches_upper_bb(candle: pd.Series) -> bool:
         return False
     return (
         candle["open"] > candle["close"] and 
-        candle["open"]  > candle["upper_bb"] and candle["close"] < candle["upper_bb"]
+        candle["high"]  > candle["upper_bb"] and candle["low"] < candle["upper_bb"]
     )
 
 

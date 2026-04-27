@@ -1,0 +1,2 @@
+,id,strategy,symbol,side,volume,entry,exit,sl,tp,open_time,close_time,duration_min,pnl,commission,net_pnl,close_reason
+0,1275763,BB_Engulfing_Breakout,XAUUSD.GNE,SELL,0.01,4569.15,4572.69,4574.27,4559.3,2026-03-31 08:40:29.906627,2026-03-31 10:43:24,122.9,-0.11,-0.11,0.0,MANUAL

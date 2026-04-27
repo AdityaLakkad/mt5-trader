@@ -39,7 +39,7 @@ MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 # Find your path: open PowerShell and run:
 #   Get-Process | Where-Object {$_.Name -like "*terminal*"} | Select-Object Path
 
-SYMBOL   = "XAUUSD.GNE"   # check your broker's exact symbol name
+SYMBOL   = "BRENT.GNE"   # check your broker's exact symbol name
 INITIAL_BALANCE = 10_000.0
 
 

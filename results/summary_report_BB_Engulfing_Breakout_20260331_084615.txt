@@ -1,0 +1,29 @@
+===============================================
+  PAPER TRADING SUMMARY REPORT
+  Run    : BB_Engulfing_Breakout
+  Time   : 20260331_084615
+===============================================
+  Total Trades          : 1
+  Winners               : 1
+  Losers                : 0
+  Win Rate              : 100.0%
+  Profit Factor         : inf
+  Expectancy            : $0.0
+  Total Net PnL         : $+0.0
+  Gross Profit          : $0.0
+  Gross Loss            : $0.0
+  Max Drawdown          : $6.31
+  Max Drawdown %        : 0.53%
+  Sharpe Ratio          : -156.308
+  Return %              : +0.0%
+  Initial Balance       : $10000.0
+  Final Balance         : $0.0
+  Avg Trade Duration    : 122.9 min
+===============================================
+
+  PER SYMBOL BREAKDOWN
+-----------------------------------------------
+  Symbol     Trades   Win%    Net PnL  Avg PnL
+-----------------------------------------------
+  XAUUSD.GNE      1 100.0% $      0.0 $    0.0
+===============================================
