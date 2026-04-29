@@ -110,6 +110,9 @@ class BBEngulfingParams:
     sl_pct:    float = 1.0
     rr_ratio:  float = 3.0      # CANDLE mode only: TP = SL_distance × rr_ratio
 
+    # ── Candle size filter ────────────────────────────────────────────────────
+    max_candle_size_points: float = 0.0   # 0 = disabled; else high-low must be ≤ this
+
     # ── Fill retry ────────────────────────────────────────────────────────────
     max_fill_attempts: int = 3
 
@@ -123,7 +126,7 @@ def is_engulfing(current: pd.Series, previous: pd.Series,
     """
     Returns 'bullish', 'bearish', or None.
     expanded_body = curr_body + (curr_body × tolerance% × 2)
-    If expanded_body > prev_body → engulfing confirmed.
+    Conditions: expanded_body > prev_body AND previous candle is opposite colour.
     """
     curr_body = abs(current["close"] - current["open"])
     prev_body = abs(previous["close"] - previous["open"])
@@ -133,9 +136,9 @@ def is_engulfing(current: pd.Series, previous: pd.Series,
     expanded_body    = curr_body + (tolerance_amount * 2)
     if not expanded_body > prev_body:
         return None
-    if current["close"] > current["open"]:
+    if current["close"] > current["open"] and previous["close"] < previous["open"]:
         return "bullish"
-    if current["close"] < current["open"]:
+    if current["close"] < current["open"] and previous["close"] > previous["open"]:
         return "bearish"
     return None
 
@@ -236,6 +239,9 @@ class SignalStateManager:
         self._bars_in_trade = 0
 
     def exit_trade(self) -> None:
+        self._reset()
+
+    def cancel_signal(self) -> None:
         self._reset()
 
     def on_fill_rejected(self) -> bool:
@@ -351,6 +357,16 @@ class BBEngulfingBreakoutStrategy(BaseStrategy):
         if engulf is None:
             return
 
+        # ── Candle size filter ────────────────────────────────────────────────
+        if self.params.max_candle_size_points > 0:
+            candle_size = float(current["high"]) - float(current["low"])
+            if candle_size > self.params.max_candle_size_points:
+                logger.info(
+                    f"[{self.strategy_id}] 📏 CANDLE TOO BIG {event.symbol} | "
+                    f"size={candle_size:.5f} > max={self.params.max_candle_size_points:.5f} → skip"
+                )
+                return
+
         # ── BB touch + direction ──────────────────────────────────────────────
         if engulf == "bullish" and candle_touches_lower_bb(current):
             sm.set_signal(
@@ -397,6 +413,23 @@ class BBEngulfingBreakoutStrategy(BaseStrategy):
             return
 
         pending = sm.pending
+
+        # ── Invalidation: opposite side breached before breakout ─────────────
+        if pending.direction == "long" and event.bid <= pending.breakout_low:
+            logger.info(
+                f"[{self.strategy_id}] ❌ LONG INVALIDATED {event.symbol} | "
+                f"bid={event.bid:.5f} broke below low={pending.breakout_low:.5f} → IDLE"
+            )
+            sm.cancel_signal()
+            return
+
+        if pending.direction == "short" and event.ask >= pending.breakout_high:
+            logger.info(
+                f"[{self.strategy_id}] ❌ SHORT INVALIDATED {event.symbol} | "
+                f"ask={event.ask:.5f} broke above high={pending.breakout_high:.5f} → IDLE"
+            )
+            sm.cancel_signal()
+            return
 
         # ── Long breakout ─────────────────────────────────────────────────────
         if pending.direction == "long" and event.ask >= pending.breakout_high:
@@ -492,6 +525,7 @@ class BBEngulfingBreakoutStrategy(BaseStrategy):
             f"  Timeframe   : {self.params.timeframe}\n"
             f"  BB          : period={self.params.bb_period} std={self.params.bb_std_dev}\n"
             f"  Tolerance   : {self.params.engulf_tolerance_pct}%\n"
+            f"  Max candle  : {self.params.max_candle_size_points if self.params.max_candle_size_points > 0 else 'disabled'} points (high-low)\n"
             f"  Expiry      : {self.params.expiry_candles} candles\n"
             f"  Max trades  : {self.params.max_trades_per_symbol} per symbol\n"
             f"  Sizing mode : {self.params.sizing_mode.value}\n"

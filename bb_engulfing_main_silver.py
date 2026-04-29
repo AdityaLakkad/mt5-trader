@@ -96,8 +96,9 @@ params = BBEngulfingParams(
     bb_period            = 20,
     bb_std_dev           = 2.0,
 
-    engulf_tolerance_pct = 10.0,
-    expiry_candles       = 5000,
+    engulf_tolerance_pct    = 10.0,
+    max_candle_size_points  = 0.0,   # 0 = disabled; set e.g. 30.0 to skip candles wider than 30 pts
+    expiry_candles          = 5000,
     max_trades_per_symbol= 1,
 
     # Sizing (values from section 2 above)

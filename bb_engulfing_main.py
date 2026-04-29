@@ -96,8 +96,9 @@ params = BBEngulfingParams(
     bb_period            = 20,
     bb_std_dev           = 2.0,
 
-    engulf_tolerance_pct = 10.0,
-    expiry_candles       = 5000,
+    engulf_tolerance_pct    = 10.0,
+    max_candle_size_points  = 0.0,   # 0 = disabled; set e.g. 30.0 to skip candles wider than 30 pts
+    expiry_candles          = 5000,
     max_trades_per_symbol= 1,
 
     # Sizing (values from section 2 above)
@@ -171,6 +172,7 @@ def print_config_summary():
     print(f"  Timeframe    : M15")
     print(f"  BB           : {params.bb_period} period / {params.bb_std_dev} std")
     print(f"  Tolerance    : {params.engulf_tolerance_pct}%")
+    print(f"  Max candle   : {params.max_candle_size_points if params.max_candle_size_points > 0 else 'disabled'} pts (high-low)")
     print(f"  Expiry       : {params.expiry_candles} candles")
     print(f"  Max trades   : {params.max_trades_per_symbol} per symbol")
     print(f"  Max DD guard : {config.risk.max_drawdown_pct}%")
