@@ -1,9 +1,11 @@
 """
 strategy/bb_timed_exit.py
 =========================
-BB Engulfing Breakout — Timed Exit Variant
+Engulfing Breakout — Timed Exit Variant
 
-Entry logic: identical to BBEngulfingBreakoutStrategy.
+Entry logic (candle-only, no Bollinger Bands):
+  LONG  : bullish engulfing candle → go long when ask crosses above candle high
+  SHORT : bearish engulfing candle → go short when bid crosses below candle low
 
 Exit logic (checked on every tick):
   1. Hard SL  : loss >= sl_points (default 10) → close immediately
@@ -15,7 +17,6 @@ Lot size is always fixed (default 1.0).
 """
 
 import logging
-import math
 from dataclasses import dataclass
 from datetime import datetime
 from queue import Queue
@@ -23,16 +24,12 @@ from typing import Optional
 
 from core.base_strategy import BaseStrategy
 from core.events import BarEvent, TickEvent, FillEvent, FillStatus
-from strategy.bb_engulfing_breakout import (
-    is_engulfing, compute_bb,
-    candle_touches_lower_bb, candle_touches_upper_bb,
-    SignalStateManager,
-)
+from strategy.bb_engulfing_breakout import is_engulfing, SignalStateManager
 
 logger = logging.getLogger(__name__)
 
-# Offset added to entry to compute an unreachable TP so the paper broker
-# never closes the position via TP (the strategy owns all exits).
+# TP set impossibly far away so the paper broker never closes via TP —
+# the strategy owns all exits (SL check and timed exit).
 _NO_TP_POINTS = 999_999
 
 
@@ -40,10 +37,6 @@ _NO_TP_POINTS = 999_999
 class BBTimedExitParams:
     # ── Timeframe ──────────────────────────────────────────────────────────────
     timeframe: int = 16390            # M15 default (mt5.TIMEFRAME_M15)
-
-    # ── Bollinger Bands ────────────────────────────────────────────────────────
-    bb_period:  int   = 20
-    bb_std_dev: float = 2.0
 
     # ── Engulfing filter ───────────────────────────────────────────────────────
     engulf_tolerance_pct: float = 10.0
@@ -70,7 +63,7 @@ class _TradeState:
     direction:   str      # "long" or "short"
     entry_price: float    # actual fill price (from FillEvent)
     open_time:   datetime # UTC time of fill confirmation
-    sl_price:    float    # strategy-side SL price (for logging clarity)
+    sl_price:    float    # strategy-side SL price (for logging)
 
 
 class BBTimedExitStrategy(BaseStrategy):
@@ -95,12 +88,12 @@ class BBTimedExitStrategy(BaseStrategy):
         self._trade_state: dict[str, Optional[_TradeState]] = {
             sym: None for sym in symbols
         }
-        # Symbols for which we've already sent signal_flat (guards against duplicate signals
-        # while waiting for the close FillEvent to arrive)
+        # Symbols for which we've already sent signal_flat, while waiting for
+        # the close FillEvent — prevents duplicate flat signals.
         self._exit_pending: set = set()
 
     # =========================================================================
-    # on_bar — entry detection (identical logic to original strategy)
+    # on_bar — engulfing-only entry detection (no BB)
     # =========================================================================
 
     def on_bar(self, event: BarEvent) -> None:
@@ -108,7 +101,7 @@ class BBTimedExitStrategy(BaseStrategy):
             return
 
         df = event.bars_df
-        if df is None or len(df) < self.params.bb_period + 1:
+        if df is None or len(df) < 2:
             return
 
         sm = self._state_managers[event.symbol]
@@ -120,15 +113,11 @@ class BBTimedExitStrategy(BaseStrategy):
                 f"after {self.params.expiry_candles} candles → IDLE"
             )
 
-        df       = compute_bb(df, self.params.bb_period, self.params.bb_std_dev)
-        current  = df.iloc[-1]
-        previous = df.iloc[-2]
-
-        if math.isnan(current["lower_bb"]) or math.isnan(current["upper_bb"]):
-            return
-
         if sm.is_in_trade():
             return
+
+        current  = df.iloc[-1]
+        previous = df.iloc[-2]
 
         engulf    = is_engulfing(current, previous, self.params.engulf_tolerance_pct)
         curr_body = abs(current["close"] - current["open"])
@@ -143,7 +132,6 @@ class BBTimedExitStrategy(BaseStrategy):
             f"L={current['low']:.5f} C={current['close']:.5f} | "
             f"body={curr_body:.5f} expanded={expanded:.5f} prev={prev_body:.5f} "
             f"engulf={'✅ '+engulf if engulf else '❌ no'} | "
-            f"BB upper={current['upper_bb']:.5f} lower={current['lower_bb']:.5f} | "
             f"state={sm.state.name}"
             + (
                 f" waiting_for="
@@ -165,21 +153,21 @@ class BBTimedExitStrategy(BaseStrategy):
                 )
                 return
 
-        if engulf == "bullish" and candle_touches_lower_bb(current):
+        if engulf == "bullish":
             sm.set_signal("long", float(current["high"]), float(current["low"]),
                           event.timestamp)
             logger.info(
                 f"[{self.strategy_id}] 🟢 LONG SETUP {event.symbol} | "
-                f"breakout_high={current['high']:.5f} | lower_bb={current['lower_bb']:.5f} | "
+                f"breakout_high={current['high']:.5f} | "
                 f"expires in {self.params.expiry_candles} bars"
             )
 
-        elif engulf == "bearish" and candle_touches_upper_bb(current):
+        elif engulf == "bearish":
             sm.set_signal("short", float(current["high"]), float(current["low"]),
                           event.timestamp)
             logger.info(
                 f"[{self.strategy_id}] 🔴 SHORT SETUP {event.symbol} | "
-                f"breakout_low={current['low']:.5f} | upper_bb={current['upper_bb']:.5f} | "
+                f"breakout_low={current['low']:.5f} | "
                 f"expires in {self.params.expiry_candles} bars"
             )
 
@@ -230,7 +218,6 @@ class BBTimedExitStrategy(BaseStrategy):
         if pending.direction == "long" and event.ask >= pending.breakout_high:
             entry  = event.ask
             sl_px  = round(entry - self.params.sl_points * point, digits)
-            # TP set impossibly high so the paper broker never closes via TP
             tp_px  = round(entry + _NO_TP_POINTS * point, digits)
             logger.info(
                 f"[{self.strategy_id}] ✅ LONG BREAKOUT {event.symbol} | "
@@ -249,7 +236,6 @@ class BBTimedExitStrategy(BaseStrategy):
         elif pending.direction == "short" and event.bid <= pending.breakout_low:
             entry  = event.bid
             sl_px  = round(entry + self.params.sl_points * point, digits)
-            # TP set impossibly low (floored at 1 tick) so paper broker never hits it
             tp_px  = max(point, round(entry - _NO_TP_POINTS * point, digits))
             logger.info(
                 f"[{self.strategy_id}] ✅ SHORT BREAKOUT {event.symbol} | "
@@ -326,7 +312,6 @@ class BBTimedExitStrategy(BaseStrategy):
             f"[{self.strategy_id}] Started\n"
             f"  Symbols        : {self.symbols}\n"
             f"  Timeframe      : {self.params.timeframe}\n"
-            f"  BB             : period={self.params.bb_period} std={self.params.bb_std_dev}\n"
             f"  Tolerance      : {self.params.engulf_tolerance_pct}%\n"
             f"  Max candle     : {self.params.max_candle_size_points or 'disabled'} pts\n"
             f"  Signal expiry  : {self.params.expiry_candles} candles\n"

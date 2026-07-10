@@ -1,7 +1,7 @@
 """
 bb_timed_exit_main.py
 =====================
-BB Engulfing Breakout — Timed Exit strategy.
+Engulfing Breakout — Timed Exit strategy.
 
 Exit rules:
   - Loss >= 10 points at any tick → close immediately
@@ -47,8 +47,6 @@ INITIAL_BALANCE = 10_000.0
 params = BBTimedExitParams(
     timeframe            = mt5.TIMEFRAME_M15,
 
-    bb_period            = 20,
-    bb_std_dev           = 2.0,
     engulf_tolerance_pct = 10.0,
     max_candle_size_points = 0.0,   # 0 = disabled; set e.g. 30.0 to skip wide candles
     expiry_candles       = 5,       # signal expires if no breakout within N bars
@@ -110,7 +108,6 @@ def print_config_summary():
     print("=" * 52)
     print(f"  Symbol         : {SYMBOL}")
     print(f"  Timeframe      : M15")
-    print(f"  BB             : {params.bb_period} period / {params.bb_std_dev} std")
     print(f"  Tolerance      : {params.engulf_tolerance_pct}%")
     print(f"  Signal expiry  : {params.expiry_candles} candles")
     print(f"  Max candle     : {params.max_candle_size_points or 'disabled'} pts")
